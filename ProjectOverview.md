@@ -7,7 +7,7 @@
 
 Biky is a **machine learning-powered demand prediction system** for bike-sharing services. By leveraging historical usage data, weather patterns, and temporal features, our model achieves **high accuracy in predicting hourly bike rental demand**, enabling cities to optimize operations, reduce costs, and improve user experience.
 
-**Key Achievement:** Our best model (XGBoost/Gradient Boosting) achieves an **R² score of ~0.90+**, representing a significant improvement over baseline seasonal predictions.
+**Key Achievement:** Our best model (XGBoost/Gradient Boosting) achieves an **R² score of ~0.65+**, representing a significant improvement over baseline seasonal predictions.
 
 ---
 

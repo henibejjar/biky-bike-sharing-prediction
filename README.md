@@ -197,7 +197,7 @@ MODEL_PATH=./model/bike_model.pkl
 ## 📈 Model Information
 
 - **Algorithm**: XGBoost / Gradient Boosting
-- **R² Score**: ~0.92
+- **R² Score**: ~0.65
 - **MAE**: ~40 bikes/hour
 - **Training Data**: Capital Bikeshare 2011-2012
 - **Notebook**: `backend/notebooks/Final_notebook.ipynb`

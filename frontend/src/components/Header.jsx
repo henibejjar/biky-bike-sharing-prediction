@@ -14,7 +14,7 @@ function Header() {
                 Biky
               </h1>
               <p className="text-sm text-gray-500">
-                AI-Powered Forecasting by MindShift
+                AI-Powered Forecasting by VeloVision
               </p>
             </div>
           </div>
