@@ -28,6 +28,4 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Model files (large)
-*.pkl
-!model/.gitkeep
+
