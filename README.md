@@ -1,6 +1,6 @@
 # 🚴 Bike Sharing Demand Prediction Application
 
-A full-stack AI-powered application for predicting bike sharing demand.
+A full-stack AI-powered application for predicting bike sharing demand with a rebalancing simulation.
 
 ## 📁 Project Structure
 
@@ -12,8 +12,10 @@ bike-prediction-app/
 │   │   └── main.py         # API endpoints
 │   ├── model/
 │   │   └── bike_model.pkl  # Trained ML model (add yours here)
+│   │   └── bike_model_daily.pkl  # Daily model
 │   ├── notebooks/
-│   │   └── Final_notebook.ipynb  # ML experimentation notebook
+│   │   ├── Final_notebook.ipynb  # Hourly ML experimentation
+│   │   └── daily_model.ipynb     # Daily ML experimentation
 │   ├── requirements.txt
 │   └── Dockerfile
 │
@@ -28,6 +30,8 @@ bike-prediction-app/
 │   │   │   ├── PredictionForm.jsx
 │   │   │   ├── PredictionResult.jsx
 │   │   │   └── DailyForecast.jsx
+│   │   ├── pages/
+│   │   │   └── RebalanceSimulation.jsx  # Route planning & rebalancing
 │   │   ├── services/
 │   │   │   └── api.js
 │   │   ├── App.jsx
@@ -50,7 +54,7 @@ bike-prediction-app/
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- Your trained model file (`bike_model.pkl`)
+- Your trained model files (`bike_model.pkl`, `bike_model_daily.pkl`)
 
 ### 1. Setup Backend
 
@@ -65,8 +69,8 @@ venv\Scripts\activate  # Windows
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy your model file
-# Place bike_model.pkl in the model/ folder
+# Copy your model files
+# Place bike_model.pkl and bike_model_daily.pkl in the model/ folder
 
 # Run the API
 uvicorn app.main:app --reload --port 8000
@@ -84,6 +88,9 @@ cd frontend
 
 # Install dependencies
 npm install
+
+# Install additional dependencies for map features
+npm install react-leaflet leaflet
 
 # Run development server
 npm run dev
@@ -108,11 +115,12 @@ docker-compose up --build
 |----------|--------|-------------|
 | `/` | GET | Welcome message |
 | `/health` | GET | Health check |
-| `/predict` | POST | Single prediction |
+| `/predict` | POST | Single hourly prediction |
 | `/predict/batch` | POST | Batch predictions |
-| `/predict/daily/{season}/{weekday}/{weathersit}` | GET | 24-hour forecast |
+| `/predict/daily/{season}/{weekday}/{weathersit}` | GET | 24-hour hourly forecast |
+| `/predict/daily` | POST | Total daily demand prediction |
 
-### Example Request
+### Example Request - Hourly Prediction
 
 ```bash
 curl -X POST "http://localhost:8000/predict" \
@@ -131,43 +139,120 @@ curl -X POST "http://localhost:8000/predict" \
   }'
 ```
 
+### Example Request - Daily Prediction
+
+```bash
+curl -X POST "http://localhost:8000/predict/daily" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "season": 3,
+    "month": 6,
+    "weekday": 2,
+    "workingday": 1,
+    "weathersit": 1,
+    "temp": 0.5,
+    "atemp": 0.5,
+    "hum": 0.5,
+    "windspeed": 0.2,
+    "holiday": 0
+  }'
+```
+
 ## 🎨 Features
 
 ### Frontend
 - ✅ Modern React + Vite setup
 - ✅ Tailwind CSS styling
+- ✅ **Three interactive tabs:**
+  - **Single Prediction**: Hourly demand forecast
+  - **Daily Forecast**: 24-hour demand pattern
+  - **Rebalancing**: Interactive map with route planning simulation
 - ✅ Interactive sliders for parameters
 - ✅ Real-time predictions
 - ✅ 24-hour forecast charts
+- ✅ **Interactive Leaflet map showing:**
+  - 10 bike stations in Washington D.C.
+  - Station status (🔴 High Demand, 🔵 Overflow, 🟢 Normal)
+  - Real-time bike availability counts
+  - Rebalancing routes with transfer amounts
 - ✅ Responsive design
 - ✅ Nginx configuration for production
 
 ### Backend
 - ✅ FastAPI with automatic docs (Swagger & ReDoc)
+- ✅ **Dual model system:**
+  - Hourly model for time-specific predictions
+  - Daily model for total daily demand
 - ✅ Model loading & inference
 - ✅ CORS configured
 - ✅ Input validation (Pydantic)
 - ✅ Operational recommendations
 - ✅ Batch & daily forecasts
+- ✅ Confidence intervals
 
 ### Data & ML
 - ✅ Hourly and daily datasets included
-- ✅ Jupyter notebook for experimentation
+- ✅ Two Jupyter notebooks for experimentation
+- ✅ Feature engineering (cyclical encoding, interactions)
+
+## 🗺️ Rebalancing Simulation
+
+The rebalancing tab provides an interactive map visualization of bike station operations:
+
+### Station Types
+- **🔵 SOURCE (Overflow)**: Stations with too many bikes (need removal)
+- **🔴 SINK (High Demand)**: Stations with too few bikes (need supply)
+- **🟢 NORMAL**: Balanced stations
+
+### Features
+- Real-time bike counts displayed on map
+- Planned rebalancing routes shown with dashed lines
+- Transfer amounts indicated (e.g., "Move 15 bikes")
+- Station capacity and current availability sidebar
+
+### Stations Included
+1. Union Station
+2. Lincoln Memorial
+3. Georgetown Harbor
+4. Dupont Circle
+5. Nationals Park
+6. Adams Morgan
+7. White House
+8. Capitol Hill
+9. National Zoo
+10. Columbia Heights
 
 ## 📊 Input Parameters
+
+### Hourly Prediction Parameters
 
 | Parameter | Range | Description |
 |-----------|-------|-------------|
 | `season` | 1-4 | 1=Winter, 2=Spring, 3=Summer, 4=Fall |
-| `hour` | 0-23 | Hour of day |
+| `hour` | 0-23 | Hour of day (only for hourly) |
 | `weekday` | 0-6 | 0=Sunday, 6=Saturday |
 | `workingday` | 0-1 | Is it a working day? |
 | `weathersit` | 1-4 | 1=Clear, 2=Mist, 3=Light Rain, 4=Heavy Rain |
-| `temp` | 0-1 | Normalized temperature |
+| `temp` | 0-1 | Normalized temperature (×41 for °C) |
 | `atemp` | 0-1 | Normalized feeling temperature |
-| `hum` | 0-1 | Normalized humidity |
-| `windspeed` | 0-1 | Normalized wind speed |
+| `hum` | 0-1 | Normalized humidity (×100 for %) |
+| `windspeed` | 0-1 | Normalized wind speed (×67 for km/h) |
 | `holiday` | 0-1 | Is it a holiday? |
+
+### Daily Prediction Parameters
+
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `season` | 1-4 | Season of year |
+| `month` | 1-12 | Month (required for daily model) |
+| `weekday` | 0-6 | Day of week |
+| `workingday` | 0-1 | Working day flag |
+| `weathersit` | 1-3 | Weather situation |
+| `temp` | 0-1 | Temperature |
+| `atemp` | 0-1 | Feeling temperature |
+| `hum` | 0-1 | Humidity |
+| `windspeed` | 0-1 | Wind speed |
+| `holiday` | 0-1 | Holiday flag |
 
 ## 📂 Datasets
 
@@ -191,21 +276,24 @@ VITE_API_URL=http://localhost:8000
 
 **Backend** (`.env`):
 ```
-MODEL_PATH=./model/bike_model.pkl
+HOURLY_MODEL_PATH=./model/bike_model.pkl
+DAILY_MODEL_PATH=./model/bike_model_daily.pkl
 ```
 
 ## 📈 Model Information
 
+### Hourly Model
 - **Algorithm**: XGBoost / Gradient Boosting
-- **R² Score**: ~0.65
+- **R² Score**: ~0.92
+- **RMSE**: ~60 bikes/hour
 - **MAE**: ~40 bikes/hour
-- **Training Data**: Capital Bikeshare 2011-2012
-- **Notebook**: `backend/notebooks/Final_notebook.ipynb`
+- **Training Data**: Capital Bikeshare 2011-2012 hourly data
+- **Notebook**: [`backend/notebooks/Final_notebook.ipynb`](backend/notebooks/Final_notebook.ipynb)
 
-## 👥 Team
+### Daily Model
+- **Algorithm**: Gradient Boosting / Random Forest
+- **Purpose**: Predicts total daily demand (not hourly breakdown)
+- **Training Data**: Capital Bikeshare 2011-2012 daily data
+- **Notebook**: [`backend/notebooks/daily_model.ipynb`](backend/notebooks/daily_model.ipynb)
 
-**MindShift Analytics** — Smart Mobility Solutions
-
-## 📄 License
-
-MIT License - Feel free to use and modify!
+## 

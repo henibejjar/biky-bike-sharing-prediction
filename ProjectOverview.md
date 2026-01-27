@@ -1,13 +1,17 @@
 # 🚴 Bike Sharing Demand Prediction Platform
-## AI-Powered Demand Forecasting for Smart Urban Mobility
+## AI-Powered Demand Forecasting & Rebalancing Simulation for Smart Urban Mobility
 
 ---
 
 ## 📋 Executive Summary
 
-Biky is a **machine learning-powered demand prediction system** for bike-sharing services. By leveraging historical usage data, weather patterns, and temporal features, our model achieves **high accuracy in predicting hourly bike rental demand**, enabling cities to optimize operations, reduce costs, and improve user experience.
+Biky is a **machine learning-powered demand prediction and operational planning system** for bike-sharing services. By leveraging historical usage data, weather patterns, and temporal features, our dual-model system achieves **high accuracy in predicting both hourly and daily bike rental demand**. The platform includes an **interactive rebalancing simulation** to visualize station operations and optimize bike redistribution, enabling cities to reduce costs and improve user experience.
 
-**Key Achievement:** Our best model (XGBoost/Gradient Boosting) achieves an **R² score of ~0.65+**, representing a significant improvement over baseline seasonal predictions.
+**Key Achievements:** 
+- Hourly model (XGBoost/Gradient Boosting)
+- Daily model:(XGBoost) Predicts total daily demand for fleet planning
+- Interactive map visualization with 10 Washington D.C. stations
+- Simulation-based rebalancing route planning
 
 ---
 
@@ -21,8 +25,9 @@ Bike-sharing systems face critical operational challenges:
 | **Unpredictable demand** | Poor resource allocation |
 | **Maintenance scheduling** | Service disruptions during peak hours |
 | **Staffing inefficiencies** | Over/understaffing costs |
+| **Rebalancing logistics** | High operational costs for manual redistribution |
 
-**Our Solution:** An AI-driven prediction platform that forecasts demand with high accuracy, enabling proactive resource management.
+**Our Solution:** An AI-driven prediction platform that forecasts demand with high accuracy **plus** an interactive rebalancing simulation to visualize and plan bike redistribution operations.
 
 ---
 
@@ -166,8 +171,8 @@ hour_cos = cos(2π × hour / 24)
 
 | Set | Period | Records | Purpose |
 |-----|--------|---------|---------|
-| **Training** | 2011 | ~8,760 hours | Model learning |
-| **Testing** | 2012 | ~8,760 hours | Future prediction simulation |
+| **Training** | 2011 | ~8,760 hours / 365 days | Model learning |
+| **Testing** | 2012 | ~8,760 hours / 366 days | Future prediction simulation |
 
 **Why?** Random splits would leak future information into training, giving unrealistically optimistic results.
 
@@ -182,6 +187,13 @@ hour_cos = cos(2π × hour / 24)
 | **Gradient Boosting** | Ensemble | High accuracy |
 | **XGBoost** | Ensemble | State-of-the-art performance |
 
+### Dual Model System
+
+| Model | Purpose | Input Features | Output |
+|-------|---------|----------------|--------|
+| **Hourly Model** | Time-specific predictions | Includes `hour` feature | Rentals per hour |
+| **Daily Model** | Total daily demand | Includes `month`, no `hour` | Total daily rentals |
+
 ### Baseline Model
 **Seasonal Mean Predictor:** Always predicts the average rental count for that season.
 - Purpose: Establish a minimum bar that ML models must beat
@@ -191,7 +203,7 @@ hour_cos = cos(2π × hour / 24)
 
 ## 🏆 Results & Model Performance
 
-### Performance Comparison
+### Performance Comparison - Hourly Model
 
 | Model | R² Score | RMSE | MAE |
 |-------|----------|------|-----|
@@ -291,6 +303,43 @@ hour_cos = cos(2π × hour / 24)
 
 ---
 
+## 🗺️ Rebalancing Simulation Feature
+
+### Interactive Map Visualization
+
+The platform includes a **real-time rebalancing simulation** showing 10 bike stations in Washington D.C.:
+
+#### Station Types
+- **🔵 SOURCE (Overflow)**: Stations near capacity (e.g., Union Station: 58/60 bikes)
+- **🔴 SINK (High Demand)**: Stations nearly empty (e.g., Dupont Circle: 2/50 bikes)
+- **🟢 NORMAL**: Balanced stations (~50% capacity)
+
+#### Stations Included
+1. **Union Station** (Capacity: 60) — SOURCE
+2. **Lincoln Memorial** (Capacity: 35) — SOURCE
+3. **Georgetown Harbor** (Capacity: 30) — SOURCE
+4. **Dupont Circle** (Capacity: 50) — SINK
+5. **Nationals Park** (Capacity: 55) — SINK
+6. **Adams Morgan** (Capacity: 25) — SINK
+7. **White House** (Capacity: 40) — NORMAL
+8. **Capitol Hill** (Capacity: 45) — NORMAL
+9. **National Zoo** (Capacity: 40) — NORMAL
+10. **Columbia Heights** (Capacity: 30) — NORMAL
+
+#### Rebalancing Routes
+- **Visual routes** connecting overflow stations to empty stations
+- **Transfer amounts** displayed (e.g., "Move 15 bikes")
+- **Dashed lines** with directional arrows
+- **Hover tooltips** showing route details
+
+#### Business Value
+- **Visual planning**: Operations teams can see which stations need attention
+- **Route optimization**: Pre-planned rebalancing paths reduce logistics costs
+- **Real-time monitoring**: Track station status at a glance
+- **Data-driven decisions**: Combine demand forecasts with station status
+
+---
+
 ## 🎯 Key Insights & Recommendations
 
 ### For City Planners
@@ -298,6 +347,7 @@ hour_cos = cos(2π × hour / 24)
 1. **Dynamic Rebalancing**
    - Pre-position bikes at stations before morning (6 AM) and evening (4 PM) peaks
    - Move bikes from residential to commercial areas in mornings, reverse in evenings
+   - **Use the rebalancing simulation to plan routes**
 
 2. **Weather-Responsive Operations**
    - Reduce fleet availability on rainy/cold days
@@ -322,6 +372,7 @@ hour_cos = cos(2π × hour / 24)
 1. **Real-Time Integration**
    - Connect model to live weather APIs
    - Integrate with station sensors for real-time adjustments
+   - **Deploy rebalancing simulation with live data feeds**
 
 2. **Continuous Learning**
    - Retrain model quarterly with new data
@@ -330,6 +381,15 @@ hour_cos = cos(2π × hour / 24)
 ---
 
 ## 📁 Deliverables
+
+### Application Components
+
+| Component | Description |
+|-----------|-------------|
+| **Frontend (React + Vite)** | Three interactive tabs: Single Prediction, Daily Forecast, Rebalancing |
+| **Backend (FastAPI)** | REST API with dual model system (hourly + daily) |
+| **Rebalancing Map** | Interactive Leaflet map with 10 stations and route planning |
+| **Prediction Models** | `bike_model.pkl` (hourly), `bike_model_daily.pkl` (daily) |
 
 ### Visualizations Generated
 
@@ -351,17 +411,20 @@ hour_cos = cos(2π × hour / 24)
 
 | File | Description |
 |------|-------------|
-| `bike_model.pkl` | Trained XGBoost model (production-ready) |
+| `bike_model.pkl` | Trained XGBoost hourly model (production-ready) |
+| `bike_model_daily.pkl` | Trained daily model for total demand |
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Deploy Model** — Create API endpoint for real-time predictions
-2. **Dashboard Development** — Build interactive monitoring dashboard
+1. **Deploy Model** — ✅ Already built as REST API
+2. **Dashboard Development** — ✅ Interactive React dashboard with rebalancing map
 3. **A/B Testing** — Pilot in 2-3 cities to validate real-world performance
 4. **Expand Features** — Add event data, traffic patterns, transit schedules
-5. **Scale** — Roll out to additional cities after validation
+5. **Live Data Integration** — Connect rebalancing simulation to real-time station sensors
+6. **Mobile App** — Extend platform to mobile for field operations teams
+7. **Scale** — Roll out to additional cities after validation
 
 ---
 
@@ -376,6 +439,8 @@ hour_cos = cos(2π × hour / 24)
 - UCI Machine Learning Repository: Bike Sharing Dataset
 - Capital Bikeshare, Washington D.C.
 - Fanaee-T, Hadi, and Gama, Joao: Event labeling combining ensemble detectors and background knowledge
+- Leaflet.js for interactive mapping
+- React-Leaflet for React integration
 
 ---
 

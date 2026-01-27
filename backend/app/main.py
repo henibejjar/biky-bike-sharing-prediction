@@ -30,26 +30,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load the trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "model", "bike_model.pkl")
+# Load Models
+HOURLY_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "model", "bike_model.pkl")
+DAILY_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "model", "bike_model_daily.pkl")
 
-model = None
+models = {"Hourly": None, "daily": None}
 
-def load_model():
-    global model
+def load_models():
+    # Load Hourly Model
     try:
-        if os.path.exists(MODEL_PATH):
-            model = joblib.load(MODEL_PATH)
-            print(f"✓ Model loaded successfully from {MODEL_PATH}")
-        else:
-            print(f"⚠ Model not found at {MODEL_PATH}. Using mock predictions.")
+        if os.path.exists(HOURLY_MODEL_PATH):
+            models["Hourly"] = joblib.load(HOURLY_MODEL_PATH)
+            print(f"✓ Hourly Model loaded: {HOURLY_MODEL_PATH}")
     except Exception as e:
-        print(f"⚠ Error loading model: {e}. Using mock predictions.")
+        print(f"⚠ Error loading Hourly Model: {e}")
 
-# Load model on startup
+    # Load Daily Model
+    try:
+        if os.path.exists(DAILY_MODEL_PATH):
+            models["daily"] = joblib.load(DAILY_MODEL_PATH)
+            print(f"✓ Daily Model loaded: {DAILY_MODEL_PATH}")
+    except Exception as e:
+        print(f"⚠ Error loading Daily Model: {e}")
+
 @app.on_event("startup")
 async def startup_event():
-    load_model()
+    load_models()
 
 # Request/Response Models
 class PredictionRequest(BaseModel):
@@ -179,6 +185,48 @@ def prepare_features(request: PredictionRequest) -> np.ndarray:
     
     return features
 
+class DailyPredictionRequest(BaseModel):
+    """Input features for Daily Prediction (No Hour, Needs Month)"""
+    season: int = Field(..., ge=1, le=4)
+    year: int = Field(default=2024)
+    month: int = Field(..., ge=1, le=12)  # Required for daily model
+    holiday: int = Field(default=0)
+    weekday: int = Field(..., ge=0, le=6)
+    workingday: int = Field(..., ge=0, le=1)
+    weathersit: int = Field(..., ge=1, le=3)
+    temp: float = Field(..., ge=0, le=1)
+    atemp: float = Field(..., ge=0, le=1)
+    hum: float = Field(..., ge=0, le=1)
+    windspeed: float = Field(..., ge=0, le=1)
+
+def prepare_daily_features(req: DailyPredictionRequest):
+    """Prepares features specifically for the Daily Model"""
+    # 1. Cyclical Features for Month
+    mnth_sin = np.sin(2 * np.pi * req.month / 12)
+    mnth_cos = np.cos(2 * np.pi * req.month / 12)
+    
+    # 2. Interactions
+    temp_hum = req.temp * req.hum
+    workday_temp = req.workingday * req.temp
+    
+    # 3. Create Array (Order must match daily training columns)
+    return np.array([[
+        req.season, 
+        1 if req.year >= 2012 else 0, 
+        req.month, 
+        req.holiday,
+        req.weekday, 
+        req.workingday, 
+        req.weathersit, 
+        req.temp, 
+        req.atemp, 
+        req.hum, 
+        req.windspeed, 
+        mnth_sin, 
+        mnth_cos, 
+        temp_hum, 
+        workday_temp
+    ]])
 # API Endpoints
 @app.get("/", tags=["Root"])
 async def root():
@@ -195,7 +243,7 @@ async def health_check():
     """Check API health status"""
     return HealthResponse(
         status="healthy",
-        model_loaded=model is not None,
+        model_loaded=models["Hourly"] is not None,
         timestamp=datetime.now().isoformat()
     )
 
@@ -212,8 +260,8 @@ async def predict_demand(request: PredictionRequest):
         features = prepare_features(request)
         
         # Make prediction
-        if model is not None:
-            prediction = model.predict(features)[0]
+        if models["Hourly"] is not None:
+            prediction = models["Hourly"].predict(features)[0]
         else:
             # Mock prediction if model not loaded
             base = 100 + (request.temp * 200) + (request.season * 30)
@@ -273,25 +321,27 @@ async def predict_batch(requests: list[PredictionRequest]):
         result = await predict_demand(req)
         results.append(result)
     return {"predictions": results, "count": len(results)}
-
 @app.get("/predict/daily/{season}/{weekday}/{weathersit}", tags=["Prediction"])
 async def predict_daily_pattern(
     season: int,
     weekday: int,
     weathersit: int,
     temp: float = 0.5,
-    hum: float = 0.5
+    hum: float = 0.5,
+    month: int = 6
 ):
     """
-    Generate hourly predictions for a full day.
+    Generate hourly predictions for a full day (GET).
     Returns 24-hour demand forecast.
     """
     predictions = []
-    workingday = 1 if weekday not in [0, 6] else 0
-    
+    workingday = 1 if weekday not in (0, 6) else 0
+
     for hour in range(24):
-        request = PredictionRequest(
+        req = PredictionRequest(
             season=season,
+            year=2024,
+            holiday=0,
             weekday=weekday,
             workingday=workingday,
             weathersit=weathersit,
@@ -301,26 +351,48 @@ async def predict_daily_pattern(
             windspeed=0.2,
             hour=hour
         )
-        result = await predict_demand(request)
+        result = await predict_demand(req)
         predictions.append({
             "hour": hour,
             "predicted_rentals": result.predicted_rentals,
             "demand_level": result.demand_level
         })
-    
+
     total_daily = sum(p["predicted_rentals"] for p in predictions)
-    peak_hour = max(predictions, key=lambda x: x["predicted_rentals"])
-    
+    peak = max(predictions, key=lambda x: x["predicted_rentals"])
+
     return {
         "predictions": predictions,
         "summary": {
             "total_daily_rentals": total_daily,
             "average_hourly": round(total_daily / 24),
-            "peak_hour": peak_hour["hour"],
-            "peak_rentals": peak_hour["predicted_rentals"]
+            "peak_hour": peak["hour"],
+            "peak_rentals": peak["predicted_rentals"],
+            "month": month
         }
     }
+@app.post("/predict/daily", tags=["Prediction"])
+async def predict_daily_demand(request: DailyPredictionRequest):
+    """
+    Predicts TOTAL DAILY demand using the specialized Daily Model.
+    """
+    if not models["daily"]:
+        raise HTTPException(status_code=503, detail="Daily model not available")
 
+    try:
+        features = prepare_daily_features(request)
+        prediction = models["daily"].predict(features)[0]
+        
+        # Ensure positive integer
+        predicted_rentals = max(0, int(round(prediction)))
+        
+        return {
+            "predicted_rentals": predicted_rentals,
+            "demand_level": "High" if predicted_rentals > 4000 else "Low",
+            "model_used": "bike_model_daily.pkl"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
