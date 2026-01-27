@@ -280,30 +280,6 @@ hour_cos = cos(2π × hour / 24)
 
 ---
 
-## 💰 Business Impact & ROI Analysis
-
-### Cost-Benefit Analysis
-
-| Metric | Value |
-|--------|-------|
-| **Avg operational cost per city** | $2,000,000/year |
-| **Estimated efficiency improvement** | 10% |
-| **Annual savings per city** | $200,000 |
-| **SaaS platform cost** | $12,000/year/city |
-| **Net benefit per city** | $188,000/year |
-| **ROI** | 1,567% |
-
-### 5-Year Projection (50 Cities)
-
-| Year | Cost Savings | Platform Cost | Net Benefit |
-|------|--------------|---------------|-------------|
-| 1 | $10M | $600K | $9.4M |
-| 2 | $20M | $1.2M | $18.8M |
-| 3 | $30M | $1.8M | $28.2M |
-| 4 | $40M | $2.4M | $37.6M |
-| 5 | $50M | $3.0M | $47.0M |
-| **Total** | **$150M** | **$9M** | **$141M** |
-
 ### Value Proposition
 
 | Stakeholder | Benefit |
