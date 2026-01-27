@@ -3,6 +3,7 @@ import Header from './components/Header'
 import PredictionForm from './components/PredictionForm'
 import PredictionResult from './components/PredictionResult'
 import DailyForecast from './components/DailyForecast'
+import RebalanceSimulation from './pages/RebalanceSimulation'
 import { predictDemand, getDailyForecast } from './services/api'
 
 function App() {
@@ -10,7 +11,7 @@ function App() {
   const [dailyForecast, setDailyForecast] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('single') // 'single' or 'daily'
+  const [activeTab, setActiveTab] = useState('single') // 'single' or 'daily' or 'rebalancing'
 
   const handlePredict = async (formData) => {
     setLoading(true)
@@ -41,30 +42,28 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         {/* Tab Navigation */}
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-lg shadow-md p-1 inline-flex">
             <button
               onClick={() => setActiveTab('single')}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
-                activeTab === 'single'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              className={`px-6 py-2 rounded-md font-medium transition-all ${activeTab === 'single' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               Single Prediction
             </button>
             <button
               onClick={() => setActiveTab('daily')}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
-                activeTab === 'daily'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              className={`px-6 py-2 rounded-md font-medium transition-all ${activeTab === 'daily' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               Daily Forecast
+            </button>
+            <button
+              onClick={() => setActiveTab('rebalancing')}
+              className={`px-6 py-2 rounded-md font-medium transition-all ${activeTab === 'rebalancing' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              Rebalancing
             </button>
           </div>
         </div>
@@ -78,13 +77,17 @@ function App() {
 
         {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Left Column - Form */}
+          {/* Left Column - Form or Simulation */}
           <div>
-            <PredictionForm 
-              onSubmit={activeTab === 'single' ? handlePredict : handleDailyForecast}
-              loading={loading}
-              mode={activeTab}
-            />
+            {activeTab === 'rebalancing' ? (
+              <RebalanceSimulation />
+            ) : (
+              <PredictionForm 
+                onSubmit={activeTab === 'single' ? handlePredict : handleDailyForecast}
+                loading={loading}
+                mode={activeTab}
+              />
+            )}
           </div>
 
           {/* Right Column - Results */}
@@ -95,7 +98,7 @@ function App() {
             {activeTab === 'daily' && dailyForecast && (
               <DailyForecast forecast={dailyForecast} />
             )}
-            {!prediction && !dailyForecast && (
+            {!prediction && !dailyForecast && activeTab !== 'rebalancing' && (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
                 <div className="text-6xl mb-4">🚴</div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
