@@ -100,7 +100,7 @@ export default function RebalanceSimulation() {
         <div className="bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20">
           <h2 className="text-xl font-bold text-gray-800">Fleet Optimization</h2>
           <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">
-            Live Simulation Mode
+            Simulation Mode
           </div>
         </div>
       </div>

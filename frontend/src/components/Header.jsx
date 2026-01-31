@@ -24,10 +24,6 @@ function Header() {
               <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
               <span className="text-sm">High Accuracy</span>
             </div>
-            <div className="flex items-center text-gray-600">
-              <Cloud className="w-5 h-5 mr-2 text-blue-500" />
-              <span className="text-sm">Real-time Weather</span>
-            </div>
           </div>
         </div>
       </div>
