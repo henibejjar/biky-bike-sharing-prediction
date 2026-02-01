@@ -11,7 +11,7 @@ bike-prediction-app/
 │   │   ├── __init__.py
 │   │   └── main.py         # API endpoints
 │   ├── model/
-│   │   └── bike_model.pkl  # Trained ML model (add yours here)
+│   │   └── bike_model.pkl  # Trained ML model
 │   │   └── bike_model_daily.pkl  # Daily model
 │   ├── notebooks/
 │   │   ├── Final_notebook.ipynb  # Hourly ML experimentation
